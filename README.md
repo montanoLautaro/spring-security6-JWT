@@ -1,0 +1,144 @@
+## Funcionamiento Session
+1. Cliente envia una peticion a un servidor ej: (/api/login)
+2. Servidor valida username y password, si no son validos devolvera una
+   respuesta 401 unauthorized
+3. Servidor valida username y password, si son validados entonces genera
+   se almacena el usuario en session
+4. Se genera una cookie en el cliente
+5. En proximas peticiones se comprueba si el cliente esta en session
+
+## Ventajas
+* La informacion esta en el servidor
+
+## Desventajas
+* La informacion de la session se almacena en el servidor, consume recursos
+
+## JWT (Json Web Token)
+
+https://jwt.io/
+
+Es un estandar abierto que permite transmitir informacion entre dos partes:
+
+
+PROCESO DE JWT VALIDATION
+1. Cliente envia una peticion a un servidor ej: (/api/login)
+
+2. Lo primero que se ejecuta en una aplicacion con spring es
+   el FILTER (en nuestro caso el JwtAuthenticationFilter)
+
+3.  El JwtAuthenticationFilter revisa y valida todo relacionado con el token
+    o el JWT token que tenemos
+
+3.1 Si falta el token se devuelve una respuesta Error 403 Forbidden
+de acceso denegado
+
+3.2 Si tiene un token se empieza con el proceso de validacion
+con el username/email y password
+
+4. El JWTAuthFilter llama al UserDetailsService y le envia estos
+   dos datos para intentar recuperar la informacion del usuario de
+   la base de datos, devolviendo dos posibles respuestas:
+
+4.1 Usuario inexistente, Error 403 Forbidden
+
+4.2 Usuario existente, si todo esta ok seguimos con el proceso
+de validacion
+
+5. Se valida el JWT token del usuario llamando al JWT service
+   que toma como parametro el usuario y el token, dando como resultado
+   dos posibles escenarios:
+
+5.1 Token invalido, el token no pertenece a ese usuario o expiro,
+devuelve una respuesta Error 403 Forbidden
+
+5.2 Si la contraseña es invalida 401 unauthorized
+
+5.2  Si todo esta ok seguimos con el proceso de validacion
+
+6.  El usuario esta autenticado y se va a actualizar el authentication
+    manager, asi cada vez que se verifique si el usuario esta
+    autenticado para esa peticion, la respuesta sera que si
+
+7.  La request se despacha al DispatcherServlet y de ahi se envia
+    directo al controlador que hara la ejecucion de lo que se haya
+    solicitado.
+
+8.  La respuesta del controlador se devuelve al usuario, por ejemplo
+    JSON, HTTP 200 OK, etc.
+
+Servidor válida el token JWT en cada peticion y si es correcto permite el
+acceso a los datos
+
+
+## Ventajas
+* El token se almacena en el navegador o aplicacion del cliente, consumiendo
+  menos recursos en el servidor, lo cual permite mejor escabilidad
+
+## Desventajas
+* El token esta almacenado en el navegador, aunque quisieramos no podriamos
+  invalidarlo antes de la fecha de expiracion asignada cuando se creo
+  *Lo que se realiza es dar la opcion de Logout, lo cual borra el Token
+
+
+## ESTRUCTURA DEL TOKEN JW
+
+3 partes separadas por un punto "." y codificadas en base 64 cada una:
+
+1. Header
+```json
+{
+  "alg": "HS512",
+  "typ": "JWT"
+}
+```
+alg = algoritmo que se esta utilizando
+typ = tipo de algoritmo
+
+2. Payload (informacion del usuario, no sensible)
+
+```json
+{
+  "name": "John Doe",
+  "admin": true
+}
+```
+
+3. Asignatura
+```
+HMACKSHA256{
+  base64urlEncode(header) + "." + base64urlEncode(payload), secret
+}
+```
+
+El User-agent (navegador, aplicacion, etc) envia el token JWT en las
+cabeceras :
+
+```
+Authorization: Bearer <token>
+```
+
+## Configuracion Spring
+
+Crear proyecto spring boot con:
+* Spring Security
+* Spring web
+* Spring data jpa
+* Mysql driver
+* dependencia jwt (se añade manualmente en el pom.xml)
+```
+<dependency>
+	<groupId>io.jsonwebtoken</groupId>
+	<artifactId>jjwt-api</artifactId>
+	<version>0.11.5</version>
+</dependency>
+<dependency>
+	<groupId>io.jsonwebtoken</groupId>
+	<artifactId>jjwt-impl</artifactId>
+	<version>0.11.5</version>
+</dependency>
+<dependency>
+	<groupId>io.jsonwebtoken</groupId>
+	<artifactId>jjwt-jackson</artifactId>
+	<version>0.11.5</version>
+</dependency>
+```
